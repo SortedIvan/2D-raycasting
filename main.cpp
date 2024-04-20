@@ -16,7 +16,8 @@ void drawAllRays(std::vector<Ray>& rayObjects, sf::RenderWindow& window);
 void updateAllRayPositions(std::vector<Ray>& rayObjects, sf::Vector2f lightPos);
 void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos);
 void drawAllLineSegments(std::vector<sf::VertexArray>& lineSegments, sf::RenderWindow& window);
-
+void segmentEditModeControl(sf::Vector2f& temporaryFirstVertexStorage, sf::VertexArray& tempLine, sf::Vector2f& mousePos,
+    bool hasPlacedFirstVertex, sf::CircleShape& editDot);
 
 int main() 
 {
@@ -53,6 +54,13 @@ int main()
     // add an initial line segment
     lineSegments.push_back(lineSeg);
 
+    bool segmentEditMode = false;
+    bool hasPlacedFirstVertex = false;
+
+    sf::Vector2f temporaryFirstVertexStorage = sf::Vector2f(-9999, -9999);
+    sf::VertexArray tempLine(sf::Lines, 2);
+    sf::CircleShape dotIndicator(5.f);
+
     // Main loop
     while (window.isOpen())
     {
@@ -63,27 +71,102 @@ int main()
                 window.close();
             }
 
+            if (e.type == sf::Event::KeyReleased)
+            {
+                if (e.key.code == sf::Keyboard::LShift)
+                {
+                    segmentEditMode = !segmentEditMode;
+                    // cleanSegmentEditStuff()
+                }
+            }
+
+            if (e.type == sf::Event::MouseButtonReleased)
+            {
+                if (segmentEditMode) 
+                {
+                    if (!hasPlacedFirstVertex)
+                    {
+                        temporaryFirstVertexStorage = (sf::Vector2f)sf::Mouse::getPosition(window);
+                        hasPlacedFirstVertex = true;
+                    }
+                    else
+                    {
+                        sf::VertexArray lineSegNew(sf::Lines, 2);
+                        lineSegNew[0].position = temporaryFirstVertexStorage;
+                        lineSegNew[1].position = (sf::Vector2f)sf::Mouse::getPosition(window);
+                        lineSegments.push_back(lineSegNew);
+                        
+                        temporaryFirstVertexStorage.x = -9999;
+                        temporaryFirstVertexStorage.y = -9999;
+
+                        hasPlacedFirstVertex = false;
+                    }
+                }
+            }
+
             if (e.type == sf::Event::MouseMoved)
             {
                 sf::Vector2f mousePos = (sf::Vector2f)sf::Mouse::getPosition(window);
-                light.setPosition(mousePos);
-                updateAllRayPositions(rays, light.getPosition());
+
+                if (!segmentEditMode)
+                {
+                    light.setPosition(mousePos);
+                    updateAllRayPositions(rays, light.getPosition());
+                }
+
+                if (segmentEditMode)
+                {
+                    segmentEditModeControl(temporaryFirstVertexStorage, tempLine, mousePos, hasPlacedFirstVertex, dotIndicator);
+                }
             }
             
             // Clear the window
             window.clear(sf::Color::Black);
 
             // draw
-            window.draw(light);
+            if (!segmentEditMode)
+            {
+                window.draw(light);
+                drawAllRays(rays, window);
+            }
+
             drawAllLineSegments(lineSegments, window);
-            drawAllRays(rays, window);
+
+            if (segmentEditMode)
+            {
+                if (temporaryFirstVertexStorage.x != -9999)
+                {
+                    window.draw(tempLine);
+                }
+                else 
+                {
+                    window.draw(dotIndicator);
+                }
+            }
 
             // display
             window.display();
         }
 
-        checkCollisionRays(lineSegments, rays, LIGHT_RANGE, light.getPosition());
+        if (!segmentEditMode)
+        {
+            checkCollisionRays(lineSegments, rays, LIGHT_RANGE, light.getPosition());
+        }
     }
+}
+
+void segmentEditModeControl(sf::Vector2f& temporaryFirstVertexStorage, sf::VertexArray& tempLine, sf::Vector2f& mousePos,
+    bool hasPlacedFirstVertex, sf::CircleShape& editDot)
+{
+    if (!hasPlacedFirstVertex)
+    {
+        editDot.setPosition(mousePos);
+        return;
+    }
+
+    tempLine[0].position = temporaryFirstVertexStorage;
+    tempLine[1].position = mousePos;
+
 }
 
 void createRayObjects(std::vector<Ray>& rayVect, std::vector<sf::Vector2f>& directions, float initialLength, sf::Vector2f startPoint)
@@ -144,17 +227,17 @@ std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f
     }
     
     return std::make_pair(false, sf::Vector2f(0.f, 0.f));
-}
+} 
 
 void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos)
 {
-    for (int k = 0; k < lineSegArr.size(); k++)
+    for (int i = 0; i < rays.size(); i++)
     {
-        sf::Vector2f AB = lineSegArr[k][1].position - lineSegArr[k][0].position;
-        sf::Vector2f AS = lightPos - lineSegArr[k][0].position;
-
-        for (int i = 0; i < rays.size(); i++)
+        for (int k = 0; k < lineSegArr.size(); k++)
         {
+            sf::Vector2f AB = lineSegArr[k][1].position - lineSegArr[k][0].position;
+            sf::Vector2f AS = lightPos - lineSegArr[k][0].position;
+
             float determinant = AB.x * rays[i].getDirection().y - AB.y * rays[i].getDirection().x;
 
             // if determinant is 0, then the lines are parallel and can't have an intersection point
@@ -171,9 +254,9 @@ void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ra
 
             if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRayOriginal)
             {
-                std::cout << "?" << std::endl;
                 rays[i].setLength(t2);
                 rays[i].updateEndPoint();
+                break; // No need to check further line segments for this ray
             }
             else
             {
