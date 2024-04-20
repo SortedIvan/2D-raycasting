@@ -4,11 +4,16 @@
 #include <iostream>
 #include <utility>
 #include <cmath>
+#include "ray.hpp"
 
 std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos, float lengthOfRay);
 void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f pointToRotateAround);
 std::vector<sf::Vector2f> generateDirectionVectors();
 void drawLineSegments(std::vector<sf::Vector2f>& directions, float length, sf::Vector2f startPos, sf::RenderWindow& window);
+void createRayObjects(std::vector<Ray>& rayVect, std::vector<sf::Vector2f>& directions, float initialLength, sf::Vector2f startPoint);
+void drawAllRays(std::vector<Ray>& rayObjects, sf::RenderWindow& window);
+void updateAllRayPositions(std::vector<Ray>& rayObjects, sf::Vector2f lightPos);
+
 
 # define M_PI  3.14159
 
@@ -21,27 +26,22 @@ int main()
     sf::Event e;
 
     float LIGHT_RADIUS = 25.f;
+    float LIGHT_RANGE = 800.f;
 
     sf::CircleShape light;
     light.setRadius(LIGHT_RADIUS);
     light.setOrigin(LIGHT_RADIUS, LIGHT_RADIUS);
-    
-    sf::CircleShape interesectionPointTest;
-    interesectionPointTest.setRadius(5.f);
-    interesectionPointTest.setOrigin(5.f, 5.f);
 
     std::vector<sf::Vector2f> directions = generateDirectionVectors();
+    std::vector<Ray> rays;
+    createRayObjects(rays, directions, LIGHT_RANGE, light.getPosition());
+
+    std::cout << rays.size() << std::endl;
 
     for (int i = 0; i < directions.size(); i++)
     {
         std::cout << "x: " << directions[i].x << ", y: " << directions[i].y << std::endl;
     }
-
-    sf::Vector2f dirVectorTest(1.f, -1.f);
-
-    sf::VertexArray vectorTestVisual(sf::PrimitiveType::Lines, 2);
-    vectorTestVisual[0].color = sf::Color::Green;
-    vectorTestVisual[1].color = sf::Color::Green;
 
     sf::VertexArray lineSeg(sf::PrimitiveType::Lines, 2);
     lineSeg[0].position = sf::Vector2f(400.f, 400.f);
@@ -50,12 +50,8 @@ int main()
     // Main loop
     while (window.isOpen())
     {
-        std::pair<bool, sf::Vector2f> raycastRes = raycastLine(lineSeg, dirVectorTest, light.getPosition(), 100.f);
-        if (raycastRes.first)
-        {
-            interesectionPointTest.setPosition(raycastRes.second);
-        }
-
+        //std::pair<bool, sf::Vector2f> raycastRes = raycastLine(lineSeg, dirVectorTest, light.getPosition(), LIGHT_RANGE);
+       
         while (window.pollEvent(e))
         {
             if (e.type == sf::Event::Closed)
@@ -63,27 +59,54 @@ int main()
                 window.close();
             }
 
-            sf::Vector2f mousePos = (sf::Vector2f)sf::Mouse::getPosition(window);
-
-            light.setPosition(mousePos);
-
-            vectorTestVisual[0].position = light.getPosition() + dirVectorTest * LIGHT_RADIUS / 2.f;
-            vectorTestVisual[1].position = light.getPosition() + dirVectorTest * 10.f * LIGHT_RADIUS / 2.f;
-
+            if (e.type == sf::Event::MouseMoved)
+            {
+                sf::Vector2f mousePos = (sf::Vector2f)sf::Mouse::getPosition(window);
+                light.setPosition(mousePos);
+                updateAllRayPositions(rays, light.getPosition());
+            }
+            
             // Clear the window
             window.clear(sf::Color::Black);
 
             // draw
             window.draw(light);
             window.draw(lineSeg);
-            window.draw(vectorTestVisual);
         
-            drawLineSegments(directions, 1000.f, light.getPosition(), window);
+            //drawLineSegments(directions, 1000.f, light.getPosition(), window);
             
+            drawAllRays(rays, window);
 
             // display
             window.display();
         }
+    }
+}
+
+
+void createRayObjects(std::vector<Ray>& rayVect, std::vector<sf::Vector2f>& directions, float initialLength, sf::Vector2f startPoint)
+{
+    for (int i = 0; i < directions.size(); i++)
+    {
+        Ray ray(directions[i], initialLength, startPoint);
+        rayVect.push_back(ray);
+    }
+}
+
+void drawAllRays(std::vector<Ray>& rayObjects, sf::RenderWindow& window)
+{
+    for (int i = 0; i < rayObjects.size(); i++)
+    {
+        rayObjects[i].draw(window);
+    }
+} 
+
+void updateAllRayPositions(std::vector<Ray>& rayObjects, sf::Vector2f lightPos)
+{
+    for (int i = 0; i < rayObjects.size(); i++)
+    {
+        rayObjects[i].setStartPoint(lightPos);
+        rayObjects[i].updateEndPoint();
     }
 }
 

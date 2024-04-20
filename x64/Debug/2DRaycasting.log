@@ -1,3 +1,5 @@
 ﻿  main.cpp
-C:\Users\Ivan\Desktop\Development\2D-raycasting\main.cpp(131,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Ivan\Desktop\Development\2D-raycasting\main.cpp(154,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  ray.cpp
+  Generating Code...
   2DRaycasting.vcxproj -> C:\Users\Ivan\Desktop\Development\2D-raycasting\x64\Debug\2DRaycasting.exe
