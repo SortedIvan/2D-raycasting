@@ -13,7 +13,7 @@ void drawLineSegments(std::vector<sf::Vector2f>& directions, float length, sf::V
 void createRayObjects(std::vector<Ray>& rayVect, std::vector<sf::Vector2f>& directions, float initialLength, sf::Vector2f startPoint);
 void drawAllRays(std::vector<Ray>& rayObjects, sf::RenderWindow& window);
 void updateAllRayPositions(std::vector<Ray>& rayObjects, sf::Vector2f lightPos);
-
+void checkCollisionRays(sf::VertexArray& lineSeg, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos);
 
 # define M_PI  3.14159
 
@@ -26,7 +26,7 @@ int main()
     sf::Event e;
 
     float LIGHT_RADIUS = 25.f;
-    float LIGHT_RANGE = 800.f;
+    float LIGHT_RANGE = 500.f;
 
     sf::CircleShape light;
     light.setRadius(LIGHT_RADIUS);
@@ -50,8 +50,6 @@ int main()
     // Main loop
     while (window.isOpen())
     {
-        //std::pair<bool, sf::Vector2f> raycastRes = raycastLine(lineSeg, dirVectorTest, light.getPosition(), LIGHT_RANGE);
-       
         while (window.pollEvent(e))
         {
             if (e.type == sf::Event::Closed)
@@ -80,9 +78,10 @@ int main()
             // display
             window.display();
         }
+
+        checkCollisionRays(lineSeg, rays, LIGHT_RANGE, light.getPosition());
     }
 }
-
 
 void createRayObjects(std::vector<Ray>& rayVect, std::vector<sf::Vector2f>& directions, float initialLength, sf::Vector2f startPoint)
 {
@@ -144,19 +143,58 @@ std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f
     return std::make_pair(false, sf::Vector2f(0.f, 0.f));
 }
 
+void checkCollisionRays(sf::VertexArray& lineSeg, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos)
+{
+    sf::Vector2f AB = lineSeg[1].position - lineSeg[0].position;
+    sf::Vector2f AS = lightPos - lineSeg[0].position;
+
+    for (int i = 0; i < rays.size(); i++)
+    {
+        float determinant = AB.x * rays[i].getDirection().y - AB.y * rays[i].getDirection().x;
+
+        // if determinant is 0, then the lines are parallel and can't have an intersection point
+        if (determinant == 0)
+        {
+            // reset ray to its full length
+            rays[i].setLength(lengthOfRayOriginal);
+            rays[i].updateEndPoint();
+            continue;
+        }
+
+        float t1 = (rays[i].getDirection().y * AS.x - rays[i].getDirection().x * AS.y) / determinant;
+        float t2 = -(-AB.y * AS.x + AB.x * AS.y) / determinant;
+
+        if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRayOriginal)
+        {
+            std::cout << "?" << std::endl;
+            rays[i].setLength(t2);
+            rays[i].updateEndPoint();
+        }
+        else
+        {
+            rays[i].setLength(lengthOfRayOriginal);
+            rays[i].updateEndPoint();
+        }
+
+    }
+}
+
 std::vector<sf::Vector2f> generateDirectionVectors()
 {
     std::vector<sf::Vector2f> directions;
     sf::Vector2f baseVector(1, 0); // basically x axis
 
     for (int i = 0; i < 360; ++i) // Loop through 360 degrees
-    {
-        float angle = i * (M_PI / 180);
-        float x = std::cos(angle);
-        float y = std::sin(angle);
-        sf::Vector2f direction(x, y);
+    {   
+        if (i % 5 == 0)
+        {
+            float angle = i * (M_PI / 180);
+            float x = std::cos(angle);
+            float y = std::sin(angle);
+            sf::Vector2f direction(x, y);
 
-        directions.push_back(direction);
+            directions.push_back(direction);
+        }
     }
 
     return directions;

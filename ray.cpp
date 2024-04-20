@@ -13,11 +13,14 @@ Ray::Ray(sf::Vector2f direction, float length, sf::Vector2f startPoint)
 	this->length = length;
 
 	this->direction = direction;
+
+	rayLine[0].color = sf::Color(255, 165, 0);
+	rayLine[1].color = sf::Color::Yellow;
 }
 
 void Ray::setLength(float length)
 {
-	length = length;
+	this->length = length;
 }
 
 void Ray::setStartPoint(sf::Vector2f startPoint)
@@ -32,7 +35,34 @@ void Ray::updateEndPoint()
 	rayLine[1].position = startPoint + direction * length;
 }
 
+void Ray::setEndPoint(sf::Vector2f newPoint)
+{
+	rayLine[1].position = newPoint;
+	endPoint = newPoint;
+}
+
 void Ray::draw(sf::RenderWindow& window) 
 {
 	window.draw(rayLine);
+}
+
+
+sf::Vector2f Ray::getDirection()
+{
+	return direction;
+}
+
+sf::Vector2f Ray::getStartPoint()
+{
+	return startPoint;
+}
+
+sf::Vector2f Ray::getEndPoint()
+{
+	return endPoint;
+}
+
+float Ray::getLength()
+{
+	return length;
 }

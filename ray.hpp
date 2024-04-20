@@ -18,4 +18,10 @@ class Ray
 		void updateEndPoint();
 		void setStartPoint(sf::Vector2f startPoint);
 		void draw(sf::RenderWindow& window);
+		void setEndPoint(sf::Vector2f newPoint);
+
+		sf::Vector2f getDirection();
+		sf::Vector2f getStartPoint();
+		sf::Vector2f getEndPoint();
+		float getLength();
 };
