@@ -1,0 +1,5 @@
+# Ignore Visual Studio template files
+.vs/
+*.suo
+*.user
+*.sln.docstates

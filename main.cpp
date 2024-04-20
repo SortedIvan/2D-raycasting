@@ -6,6 +6,11 @@
 #include <cmath>
 
 std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos, float lengthOfRay);
+void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f pointToRotateAround);
+std::vector<sf::Vector2f> generateDirectionVectors();
+
+
+# define M_PI  3.14159
 
 int main() 
 {
@@ -25,6 +30,12 @@ int main()
     interesectionPointTest.setRadius(5.f);
     interesectionPointTest.setOrigin(5.f, 5.f);
 
+    std::vector<sf::Vector2f> directions = generateDirectionVectors();
+
+    for (int i = 0; i < directions.size(); i++)
+    {
+        std::cout << "x: " << directions[i].x << ", y: " << directions[i].y << std::endl;
+    }
 
     sf::Vector2f dirVectorTest(1.f, -1.f);
 
@@ -43,7 +54,6 @@ int main()
         if (raycastRes.first)
         {
             interesectionPointTest.setPosition(raycastRes.second);
-            std::cout << "hi";
         }
 
         while (window.pollEvent(e))
@@ -112,4 +122,37 @@ std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f
     }
     
     return std::make_pair(false, sf::Vector2f(0.f, 0.f));
+}
+
+std::vector<sf::Vector2f> generateDirectionVectors()
+{
+    std::vector<sf::Vector2f> directions;
+    sf::Vector2f baseVector(1, 0); // basically x axis
+    
+    for (int i = 0; i < 361.f; i++)
+    {
+        rotateVector(baseVector, (i * (M_PI / 180)), sf::Vector2f(0, 0));
+        directions.push_back(baseVector);
+    }
+
+    return directions;
+
+}
+
+void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f pointToRotateAround)
+{
+    //float degrees = radians * (180 / M_PI);
+
+    sf::Vector2f offsetPoint(vectorToRotate - pointToRotateAround);
+
+    // simple rotation matrix 
+    //[cos  sin ]
+   // [-sin cos ]
+
+    sf::Vector2f rotatedVector(
+        offsetPoint.x * std::cos(radians) - offsetPoint.y * std::sin(radians),
+        offsetPoint.x * std::sin(radians) + offsetPoint.y * std::cos(radians)
+    );
+
+    vectorToRotate = rotatedVector + pointToRotateAround;
 }
