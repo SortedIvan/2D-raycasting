@@ -8,7 +8,7 @@
 std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos, float lengthOfRay);
 void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f pointToRotateAround);
 std::vector<sf::Vector2f> generateDirectionVectors();
-
+void drawLineSegments(std::vector<sf::Vector2f>& directions, float length, sf::Vector2f startPos, sf::RenderWindow& window);
 
 # define M_PI  3.14159
 
@@ -77,11 +77,8 @@ int main()
             window.draw(light);
             window.draw(lineSeg);
             window.draw(vectorTestVisual);
-
-            if (raycastRes.first)
-            {
-                window.draw(interesectionPointTest);
-            }
+        
+            drawLineSegments(directions, 1000.f, light.getPosition(), window);
             
 
             // display
@@ -128,15 +125,18 @@ std::vector<sf::Vector2f> generateDirectionVectors()
 {
     std::vector<sf::Vector2f> directions;
     sf::Vector2f baseVector(1, 0); // basically x axis
-    
-    for (int i = 0; i < 361.f; i++)
+
+    for (int i = 0; i < 360; ++i) // Loop through 360 degrees
     {
-        rotateVector(baseVector, (i * (M_PI / 180)), sf::Vector2f(0, 0));
-        directions.push_back(baseVector);
+        float angle = i * (M_PI / 180);
+        float x = std::cos(angle);
+        float y = std::sin(angle);
+        sf::Vector2f direction(x, y);
+
+        directions.push_back(direction);
     }
 
     return directions;
-
 }
 
 void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f pointToRotateAround)
@@ -155,4 +155,16 @@ void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f poin
     );
 
     vectorToRotate = rotatedVector + pointToRotateAround;
+}
+
+void drawLineSegments(std::vector<sf::Vector2f>& directions, float length, sf::Vector2f startPos, sf::RenderWindow& window)
+{
+    for (int i = 0; i < directions.size(); i++)
+    {
+        sf::VertexArray lineSegment(sf::Lines, 2);
+        lineSegment[0].position = startPos;
+        lineSegment[1].position = directions[i] * length + startPos;
+
+        window.draw(lineSegment);
+    }
 }
