@@ -5,7 +5,7 @@
 #include <utility>
 #include <cmath>
 
-std::pair<bool, sf::Vector2f> raycast(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos);
+std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos, float lengthOfRay);
 
 int main() 
 {
@@ -39,7 +39,7 @@ int main()
     // Main loop
     while (window.isOpen())
     {
-        std::pair<bool, sf::Vector2f> raycastRes = raycast(lineSeg, dirVectorTest, light.getPosition());
+        std::pair<bool, sf::Vector2f> raycastRes = raycastLine(lineSeg, dirVectorTest, light.getPosition(), 100.f);
         if (raycastRes.first)
         {
             interesectionPointTest.setPosition(raycastRes.second);
@@ -67,7 +67,12 @@ int main()
             window.draw(light);
             window.draw(lineSeg);
             window.draw(vectorTestVisual);
-            window.draw(interesectionPointTest);
+
+            if (raycastRes.first)
+            {
+                window.draw(interesectionPointTest);
+            }
+            
 
             // display
             window.display();
@@ -75,9 +80,8 @@ int main()
     }
 }
 
-std::pair<bool, sf::Vector2f> raycast(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos)
+std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos, float lengthOfRay)
 {
-
     // the parametric equations for the intersection point that we have are:
     // P = startPos + (dirVector) * t2
     // P = lineSeg[0].position + AB * t1
@@ -99,11 +103,10 @@ std::pair<bool, sf::Vector2f> raycast(sf::VertexArray& lineSeg, sf::Vector2f dir
     // since we simply solve for t2 and t1, it will always return a value, but we only need
     // the specific t1 and t2 when they are 0 <= t1,t2 <= 1
 
-    //float t1 = (dirVector.y * AS.x - dirVector.x * AS.y) / determinant;
-
+    float t1 = (dirVector.y * AS.x - dirVector.x * AS.y) / determinant;
     float t2 = - (-AB.y * AS.x + AB.x * AS.y) / determinant;
 
-    if (std::abs(t2) >= 0 && std::abs(t2) <= 1)
+    if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRay)
     {
         return std::make_pair(true, dirVector * t2 + startPos);
     }
