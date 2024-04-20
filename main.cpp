@@ -6,16 +6,17 @@
 #include <cmath>
 #include "ray.hpp"
 
+# define M_PI  3.14159
+
 std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f dirVector, sf::Vector2f startPos, float lengthOfRay);
 void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f pointToRotateAround);
 std::vector<sf::Vector2f> generateDirectionVectors();
-void drawLineSegments(std::vector<sf::Vector2f>& directions, float length, sf::Vector2f startPos, sf::RenderWindow& window);
 void createRayObjects(std::vector<Ray>& rayVect, std::vector<sf::Vector2f>& directions, float initialLength, sf::Vector2f startPoint);
 void drawAllRays(std::vector<Ray>& rayObjects, sf::RenderWindow& window);
 void updateAllRayPositions(std::vector<Ray>& rayObjects, sf::Vector2f lightPos);
-void checkCollisionRays(sf::VertexArray& lineSeg, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos);
+void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos);
+void drawAllLineSegments(std::vector<sf::VertexArray>& lineSegments, sf::RenderWindow& window);
 
-# define M_PI  3.14159
 
 int main() 
 {
@@ -26,26 +27,31 @@ int main()
     sf::Event e;
 
     float LIGHT_RADIUS = 25.f;
-    float LIGHT_RANGE = 500.f;
+    float LIGHT_RANGE = 400.f;
 
     sf::CircleShape light;
     light.setRadius(LIGHT_RADIUS);
     light.setOrigin(LIGHT_RADIUS, LIGHT_RADIUS);
 
+    /*
+        Instantiate all directions
+        Currently, it is set to have a direction every 5 degrees over 2PI
+    */
+    
     std::vector<sf::Vector2f> directions = generateDirectionVectors();
     std::vector<Ray> rays;
+
+    // Create all of the ray objects that will be shooting out of the light source
     createRayObjects(rays, directions, LIGHT_RANGE, light.getPosition());
-
-    std::cout << rays.size() << std::endl;
-
-    for (int i = 0; i < directions.size(); i++)
-    {
-        std::cout << "x: " << directions[i].x << ", y: " << directions[i].y << std::endl;
-    }
-
+    
+    std::vector<sf::VertexArray> lineSegments;
+    
     sf::VertexArray lineSeg(sf::PrimitiveType::Lines, 2);
     lineSeg[0].position = sf::Vector2f(400.f, 400.f);
     lineSeg[1].position = sf::Vector2f(800.f, 600.f);
+    
+    // add an initial line segment
+    lineSegments.push_back(lineSeg);
 
     // Main loop
     while (window.isOpen())
@@ -69,17 +75,14 @@ int main()
 
             // draw
             window.draw(light);
-            window.draw(lineSeg);
-        
-            //drawLineSegments(directions, 1000.f, light.getPosition(), window);
-            
+            drawAllLineSegments(lineSegments, window);
             drawAllRays(rays, window);
 
             // display
             window.display();
         }
 
-        checkCollisionRays(lineSeg, rays, LIGHT_RANGE, light.getPosition());
+        checkCollisionRays(lineSegments, rays, LIGHT_RANGE, light.getPosition());
     }
 }
 
@@ -143,39 +146,41 @@ std::pair<bool, sf::Vector2f> raycastLine(sf::VertexArray& lineSeg, sf::Vector2f
     return std::make_pair(false, sf::Vector2f(0.f, 0.f));
 }
 
-void checkCollisionRays(sf::VertexArray& lineSeg, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos)
+void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos)
 {
-    sf::Vector2f AB = lineSeg[1].position - lineSeg[0].position;
-    sf::Vector2f AS = lightPos - lineSeg[0].position;
-
-    for (int i = 0; i < rays.size(); i++)
+    for (int k = 0; k < lineSegArr.size(); k++)
     {
-        float determinant = AB.x * rays[i].getDirection().y - AB.y * rays[i].getDirection().x;
+        sf::Vector2f AB = lineSegArr[k][1].position - lineSegArr[k][0].position;
+        sf::Vector2f AS = lightPos - lineSegArr[k][0].position;
 
-        // if determinant is 0, then the lines are parallel and can't have an intersection point
-        if (determinant == 0)
+        for (int i = 0; i < rays.size(); i++)
         {
-            // reset ray to its full length
-            rays[i].setLength(lengthOfRayOriginal);
-            rays[i].updateEndPoint();
-            continue;
-        }
+            float determinant = AB.x * rays[i].getDirection().y - AB.y * rays[i].getDirection().x;
 
-        float t1 = (rays[i].getDirection().y * AS.x - rays[i].getDirection().x * AS.y) / determinant;
-        float t2 = -(-AB.y * AS.x + AB.x * AS.y) / determinant;
+            // if determinant is 0, then the lines are parallel and can't have an intersection point
+            if (determinant == 0)
+            {
+                // reset ray to its full length
+                rays[i].setLength(lengthOfRayOriginal);
+                rays[i].updateEndPoint();
+                continue;
+            }
 
-        if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRayOriginal)
-        {
-            std::cout << "?" << std::endl;
-            rays[i].setLength(t2);
-            rays[i].updateEndPoint();
-        }
-        else
-        {
-            rays[i].setLength(lengthOfRayOriginal);
-            rays[i].updateEndPoint();
-        }
+            float t1 = (rays[i].getDirection().y * AS.x - rays[i].getDirection().x * AS.y) / determinant;
+            float t2 = -(-AB.y * AS.x + AB.x * AS.y) / determinant;
 
+            if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRayOriginal)
+            {
+                std::cout << "?" << std::endl;
+                rays[i].setLength(t2);
+                rays[i].updateEndPoint();
+            }
+            else
+            {
+                rays[i].setLength(lengthOfRayOriginal);
+                rays[i].updateEndPoint();
+            }
+        }
     }
 }
 
@@ -207,8 +212,8 @@ void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f poin
     sf::Vector2f offsetPoint(vectorToRotate - pointToRotateAround);
 
     // simple rotation matrix 
-    //[cos  sin ]
-   // [-sin cos ]
+    //[cos  sin]
+   // [-sin cos]
 
     sf::Vector2f rotatedVector(
         offsetPoint.x * std::cos(radians) - offsetPoint.y * std::sin(radians),
@@ -218,14 +223,10 @@ void rotateVector(sf::Vector2f& vectorToRotate, float radians, sf::Vector2f poin
     vectorToRotate = rotatedVector + pointToRotateAround;
 }
 
-void drawLineSegments(std::vector<sf::Vector2f>& directions, float length, sf::Vector2f startPos, sf::RenderWindow& window)
+void drawAllLineSegments(std::vector<sf::VertexArray>& lineSegments, sf::RenderWindow& window)
 {
-    for (int i = 0; i < directions.size(); i++)
+    for (int i = 0; i < lineSegments.size(); i++)
     {
-        sf::VertexArray lineSegment(sf::Lines, 2);
-        lineSegment[0].position = startPos;
-        lineSegment[1].position = directions[i] * length + startPos;
-
-        window.draw(lineSegment);
+        window.draw(lineSegments[i]);
     }
 }
