@@ -8,4 +8,5 @@ It further includes a simple line segment editor where a user can draw different
 The ray with line segment intersection works by solving a simple parametric equations problem using an inverted matrix, created by the ray and the line segment. Furthermore, the algorithm chooses the closest intersection point for a ray, ensuring that the rays work properly for stacked line segments.
 
 The linear algebra derivation (done on paper) can be found here:
+[Link to derivation](Ray_with_line_segment_intersection.pdf)
 
