@@ -12,6 +12,8 @@ class Ray
 		sf::Vector2f startPoint;
 		sf::Vector2f endPoint;
 
+		bool isIntersectingSegment = false;
+
 	public:
 		Ray(sf::Vector2f direction, float length, sf::Vector2f startPoint);
 		void setLength(float length);

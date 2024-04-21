@@ -46,13 +46,6 @@ int main()
     createRayObjects(rays, directions, LIGHT_RANGE, light.getPosition());
     
     std::vector<sf::VertexArray> lineSegments;
-    
-    sf::VertexArray lineSeg(sf::PrimitiveType::Lines, 2);
-    lineSeg[0].position = sf::Vector2f(400.f, 400.f);
-    lineSeg[1].position = sf::Vector2f(800.f, 600.f);
-    
-    // add an initial line segment
-    lineSegments.push_back(lineSeg);
 
     bool segmentEditMode = false;
     bool hasPlacedFirstVertex = false;
@@ -233,6 +226,9 @@ void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ra
 {
     for (int i = 0; i < rays.size(); i++)
     {
+        float closestIntersectionLength = std::numeric_limits<float>::max();
+        bool found = false;
+
         for (int k = 0; k < lineSegArr.size(); k++)
         {
             sf::Vector2f AB = lineSegArr[k][1].position - lineSegArr[k][0].position;
@@ -254,18 +250,83 @@ void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ra
 
             if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRayOriginal)
             {
-                rays[i].setLength(t2);
-                rays[i].updateEndPoint();
-                break; // No need to check further line segments for this ray
+                // Found a line segment that is within the intersection
+                // ensure we dont have two walls stacked
+
+                if (closestIntersectionLength > t2) 
+                {
+                    closestIntersectionLength = t2;
+                    found = true;
+                }
             }
-            else
-            {
-                rays[i].setLength(lengthOfRayOriginal);
-                rays[i].updateEndPoint();
-            }
+        }
+
+        // at the end of the loop
+
+        if (found)
+        {
+            rays[i].setLength(closestIntersectionLength);
+            rays[i].updateEndPoint();
+        }
+        else
+        {
+            rays[i].setLength(lengthOfRayOriginal);
+            rays[i].updateEndPoint();
         }
     }
 }
+
+
+//void checkCollisionRays(std::vector<sf::VertexArray>& lineSegArr, std::vector<Ray>& rays, float lengthOfRayOriginal, sf::Vector2f lightPos)
+//{
+//    for (int i = 0; i < rays.size(); i++)
+//    {
+//        float closestIntersectionLength = std::numeric_limits<float>::max();
+//        bool found = false;
+//
+//        for (int k = 0; k < lineSegArr.size(); k++)
+//        {
+//            sf::Vector2f AB = lineSegArr[k][1].position - lineSegArr[k][0].position;
+//            sf::Vector2f AS = lightPos - lineSegArr[k][0].position;
+//
+//            float determinant = AB.x * rays[i].getDirection().y - AB.y * rays[i].getDirection().x;
+//
+//            // if determinant is 0, then the lines are parallel and can't have an intersection point
+//            if (determinant == 0)
+//            {
+//                // reset ray to its full length
+//                rays[i].setLength(lengthOfRayOriginal);
+//                rays[i].updateEndPoint();
+//                continue;
+//            }
+//
+//            float t1 = (rays[i].getDirection().y * AS.x - rays[i].getDirection().x * AS.y) / determinant;
+//            float t2 = -(-AB.y * AS.x + AB.x * AS.y) / determinant;
+//
+//            if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= lengthOfRayOriginal)
+//            {
+//                // Found a line segment that is within the intersection
+//                // ensure we dont have two walls stacked
+//
+//                if (closestIntersectionLength > t2)
+//                {
+//                    closestIntersectionLength = t2;
+//                }
+//
+//                rays[i].setLength(t2);
+//                rays[i].updateEndPoint();
+//
+//                break; // No need to check further line segments for this ray
+//            }
+//            else
+//            {
+//                rays[i].setLength(lengthOfRayOriginal);
+//                rays[i].updateEndPoint();
+//            }
+//        }
+//    }
+//}
+
 
 std::vector<sf::Vector2f> generateDirectionVectors()
 {
@@ -274,7 +335,7 @@ std::vector<sf::Vector2f> generateDirectionVectors()
 
     for (int i = 0; i < 360; ++i) // Loop through 360 degrees
     {   
-        if (i % 5 == 0)
+        if (i % 2 == 0)
         {
             float angle = i * (M_PI / 180);
             float x = std::cos(angle);
