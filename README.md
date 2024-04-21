@@ -1,4 +1,10 @@
 # 2D-raycasting
+
+![2024-04-21 11-48-22](https://github.com/SortedIvan/2D-raycasting/assets/62967263/42af9a5c-66c9-4f90-8b19-73210473df78)
+
+
+
+
 A simple exercise for dynamic 2D raycasting for a ray with multiple line segments intersections. 
 
 It works by generating direction vectors by going over 2PI (rotating 360 degrees) and then using each of those directions to create a seperate Ray object.
